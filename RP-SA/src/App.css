@@ -1,0 +1,286 @@
+/* --- CONFIGURAÇÕES GERAIS --- */
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+  font-family: 'Arial', sans-serif;
+  overflow-x: hidden; /* Impede que o celular crie barrinha embaixo */
+  max-width: 100vw;
+}
+
+.container-geral {
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+/* --- HEADER FIXO E BOTÕES --- */
+.header-fixo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 80px;
+  background-color: #0d2137;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  z-index: 1000;
+  border-bottom: 4px solid #b71c1c;
+  box-sizing: border-box;
+}
+
+.logo-img {
+  height: 50px;
+  width: auto;
+}
+
+.btn-interesse-whats {
+  background-color: #b71c1c;
+  color: #ffffff;
+  border: none;
+  padding: 10px 18px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  transition: 0.3s;
+}
+
+.btn-interesse-whats:hover {
+  background-color: #8e1616;
+}
+
+.icon-whats-btn {
+  width: 18px;
+  height: 18px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  filter: brightness(0) invert(1);
+}
+
+/* --- MENU LATERAL E HAMBÚRGUER --- */
+.menu-hamburguer {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.barrinha {
+  background-color: #ffffff;
+  width: 30px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.menu-lateral {
+  position: fixed;
+  top: 0;
+  left: -400px;
+  width: 300px;
+  height: 100vh;
+  background-color: #0d2137;
+  transition: left 0.4s ease-in-out;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 30px;
+  box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+}
+
+.menu-lateral.aberto { 
+  left: 0;
+}
+
+.menu-lateral nav {
+  display: flex;
+  flex-direction: column;
+  margin-top: 30px;
+}
+
+.menu-lateral nav a { 
+  color: white; 
+  text-decoration: none; 
+  font-size: 18px; 
+  font-weight: bold;
+  padding: 15px 0; 
+  cursor: pointer; 
+  border-bottom: 1px solid #1f364d; 
+  transition: color 0.2s;
+}
+
+.menu-lateral nav a:hover {
+  color: #b71c1c;
+}
+
+.fechar-menu { 
+  position: absolute; 
+  top: 20px; 
+  right: 25px; 
+  background: none; 
+  border: none; 
+  color: white; 
+  font-size: 28px; 
+  cursor: pointer; 
+}
+
+.fundo-escuro-menu { 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  width: 100vw; 
+  height: 100vh; 
+  background: rgba(0,0,0,0.6); 
+  z-index: 1999; 
+  backdrop-filter: blur(2px);
+}
+
+/* --- CONTEÚDO PRINCIPAL --- */
+.conteudo-principal {
+  margin-top: 80px; /* Encosta perfeitamente na Header */
+  padding: 0;
+  text-align: center;
+  width: 100vw;
+}
+
+/* --- CARROSSEL HONDA (Proporção 1600x500 Exata) --- */
+.carrossel-honda {
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  background-color: #111;
+  margin-bottom: 50px;
+}
+
+.slide {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* --- SERVIÇOS --- */
+.titulo-secao {
+  color: #b71c1c;
+  font-size: 32px;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+}
+
+.galeria-servicos, .lista-servicos-detalhada {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 25px;
+  padding: 0 20px;
+}
+
+.card-servico {
+  background: #ffffff;
+  width: 320px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-bottom: 5px solid #b71c1c;
+}
+
+.foto-servico, .foto-placeholder {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.foto-placeholder {
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #555;
+}
+
+.card-servico p {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 20px;
+  color: #0d2137;
+  margin: 0;
+}
+
+/* --- MAPA --- */
+.mapa-container { 
+  margin-top: 60px; 
+  width: 100%; 
+}
+
+/* --- TELA MINHA CONTA --- */
+.conta-container { display: flex; justify-content: center; padding: 40px 20px; }
+.conta-box { background: white; padding: 40px; border-top: 5px solid #b71c1c; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+.form-conta { display: flex; flex-direction: column; gap: 15px; }
+.form-conta input { padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+.senha-input-box { display: flex; position: relative; }
+.senha-input-box input { width: 100%; }
+.btn-ver-senha { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; }
+.termos-label { font-size: 12px; text-align: left; display: flex; align-items: center; gap: 5px; }
+.btn-submit-conta { background: #0d2137; color: white; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.toggle-conta { color: #b71c1c; cursor: pointer; margin-top: 15px; font-size: 14px; text-decoration: underline; }
+
+/* --- RODAPÉ HONDA --- */
+.rodape-honda { background: #ffffff; width: 100vw; border-top: 1px solid #ddd; display: flex; flex-direction: column; margin-top: 40px; }
+.rodape-principal { display: flex; justify-content: space-between; padding: 50px; max-width: 1200px; margin: 0 auto; width: 100%; flex-wrap: wrap; gap: 40px; box-sizing: border-box; }
+.rodape-logo-redes .logo-rodape { max-width: 180px; height: auto; margin-bottom: 20px; filter: invert(1); }
+.rodape-logo-redes h3 { font-size: 16px; color: #0d2137; margin-bottom: 10px; }
+.rodape-links { display: flex; gap: 80px; flex-wrap: wrap; }
+.coluna-links h4 { color: #b71c1c; font-size: 18px; margin-bottom: 15px; }
+.coluna-links a { display: block; color: #555; margin-bottom: 10px; cursor: pointer; text-decoration: none; font-size: 14px; }
+.rodape-cinza { background: #e0e0e0; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; color: #555; font-size: 12px; flex-wrap: wrap; gap: 10px; box-sizing: border-box; }
+.rodape-cinza-links { display: flex; gap: 20px; }
+
+/* --- REGRAS PARA CELULARES --- */
+@media (max-width: 768px) {
+  .header-fixo { padding: 0 15px; }
+  .btn-interesse-whats { font-size: 11px; padding: 8px 12px; }
+  .logo-img { height: 40px; }
+  
+  .carrossel-honda { min-height: 120px; } /* Evita que suma em telas fininhas */
+  
+  .titulo-secao { font-size: 24px; }
+
+  /* Empilhamento do Rodapé */
+  .rodape-principal {
+    flex-direction: column;
+    padding: 30px 20px;
+    gap: 30px;
+  }
+  .rodape-links {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .rodape-cinza {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+    padding: 20px;
+  }
+  .rodape-cinza-links {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .menu-saudacao {
+  color: #ffffff; /* Letra branca pra acender no fundo azul escuro! */
+  font-size: 22px;
+  font-weight: bold;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #b71c1c; /* Linha vermelha da Honda embaixo */
+  padding-bottom: 15px;
+}
+}
