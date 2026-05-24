@@ -81,8 +81,8 @@ function App() {
                <div className="card-servico"><img src={imgMecanica} alt="Mecânica" className="foto-servico" /><p>Mecânica Geral e Revisão</p></div>
                <div className="card-servico"><img src={imgInjecao} alt="Injeção" className="foto-servico" /><p>Diagnóstico de Injeção Eletrônica</p></div>
                <div className="card-servico"><img src={imgFreios} alt="Freios" className="foto-servico" /><p>Suspensão, Freios e Geometria</p></div>
-               <div className="card-servico"><div className="foto-placeholder">📸 Ar-Condicionado</div><p>Manutenção de Ar-Condicionado</p></div>
-               <div className="card-servico"><div className="foto-placeholder">📸 Retífica</div><p>Retífica de Motores</p></div>
+               <div className="card-servico"><img src={imgarCondicionado} alt="Ar-Condicionado" className="foto-servico" /><p>Ar-condicionado</p></div>
+               <div className="card-servico"><img src={imgRetifica} alt="Retifica" className="foto-servico" /><p>Retifica</p></div>
             </div>
           </div>
         )}
