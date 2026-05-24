@@ -6,6 +6,8 @@ import imgInjecao from './assets/injecao.png';
 import imgFreios from './assets/suspensao.png';
 import imgSlide1 from './assets/imagem1.jpg';
 import imgSlide2 from './assets/imagem2.jpg';
+import imgRetifica from '.assets/retifica';
+import imgarCondicionado from '.assets/ar-condicionado';
 
 import Header from './components/Header';
 import MinhaConta from './components/MinhaConta';
@@ -82,8 +84,8 @@ function App() {
                <div className="card-servico"><img src={imgMecanica} alt="Mecânica" className="foto-servico" /><p>Mecânica Geral e Revisão</p></div>
                <div className="card-servico"><img src={imgInjecao} alt="Injeção" className="foto-servico" /><p>Diagnóstico de Injeção Eletrônica</p></div>
                <div className="card-servico"><img src={imgFreios} alt="Freios" className="foto-servico" /><p>Suspensão, Freios e Geometria</p></div>
-               <div className="card-servico"><div className="foto-placeholder">📸 Ar-Condicionado</div><p>Manutenção de Ar-Condicionado</p></div>
-               <div className="card-servico"><div className="foto-placeholder">📸 Retífica</div><p>Retífica de Motores</p></div>
+               <div className="card-servico"><img src={imgarCondicionado} alt="Ar-Condicionado" classname="foto-servico" /><p>Manutenção de Ar-Condicionado</p></div>
+               <div className="card-servico"><img src={imgRetifica} alt="Retifica" classname="foto-servico" /> <p>Retifica</p></div>
             </div>
           </div>
         )}
