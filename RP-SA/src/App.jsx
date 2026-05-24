@@ -4,6 +4,8 @@ import logoImg from './assets/logo.png';
 import imgMecanica from './assets/mecanica.png';
 import imgInjecao from './assets/injecao.png';
 import imgFreios from './assets/suspensao.png';
+import imgarCondicionado from './assets/ar-condicionado.png';
+import imgRetifica from './assets/retifica.png';
 import imgSlide1 from './assets/imagem1.jpg';
 import imgSlide2 from './assets/imagem2.jpg';
 
