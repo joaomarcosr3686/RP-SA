@@ -16,10 +16,11 @@ function App() {
   const [paginaAtual, setPaginaAtual] = useState('inicio');
   const [slideAtual, setSlideAtual] = useState(0);
 
-  const [usuarioLogado, setUsuarioLogado] = useState(() => {
-    const logado = JSON.parse(localStorage.getItem('rp_logado'));
-    return logado ? logado.usuario : null;
-  });
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
+
+  const handleLogout = () => {
+    setUsuarioLogado(null);
+  };
 
   useEffect(() => {
     const intervalo = setInterval(() => {
@@ -88,7 +89,7 @@ function App() {
         )}
 
         {paginaAtual === 'conta' && (
-          <MinhaConta onLogin={setUsuarioLogado} />
+          <MinhaConta onLogin={setUsuarioLogado} onLogout={handleLogout} />
         )}
 
       </main>

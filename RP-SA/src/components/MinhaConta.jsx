@@ -1,19 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
-export default function MinhaConta({ onLogin }) {
+export default function MinhaConta({ onLogin, onLogout }) {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [user, setUser] = useState(null);
   
   const [form, setForm] = useState({
-    usuario: '', nome: '', cpf: '', email: '', senha: '', confSenha: '', termos: false
+    nome: '', cpf: '', email: '', senha: '', confSenha: '', termos: false
   });
+
+  useEffect(() => {
+    // Verifica se já existe uma sessão ativa
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        onLogin(session.user.email);
+      }
+    };
+    checkSession();
+
+    // Listener para mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        onLogin(session.user.email);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [onLogin]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleHoldPassword = (e) => { e.preventDefault(); setShowPassword(true); };
   const handleReleasePassword = () => setShowPassword(false);
 
-  // === MATEMÁTICA REAL DE VALIDAÇÃO DE CPF E CNPJ ===
+  // === VALIDACAO DE CPF E CNPJ ===
   const validarCpfCnpj = (val) => {
     const doc = val.replace(/\D/g, '');
     if (doc.length === 11) return validarCPF(doc);
@@ -22,7 +50,7 @@ export default function MinhaConta({ onLogin }) {
   };
 
   const validarCPF = (cpf) => {
-    if (/^(\d)\1+$/.test(cpf)) return false; // Bloqueia 111.111.111-11
+    if (/^(\d)\1+$/.test(cpf)) return false;
     let soma = 0, resto;
     for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
     resto = (soma * 10) % 11;
@@ -48,65 +76,276 @@ export default function MinhaConta({ onLogin }) {
     if (resultado != digitos.charAt(1)) return false;
     return true;
   };
-  // ===================================================
 
-  const handleSubmit = (e) => {
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      const contasSalvas = JSON.parse(localStorage.getItem('rp_contas')) || [];
-      const contaExiste = contasSalvas.find(c => c.usuario === form.usuario && c.senha === form.senha);
-      if (contaExiste) {
-        localStorage.setItem('rp_logado', JSON.stringify(contaExiste));
-        onLogin(contaExiste.usuario);
-        alert('Login efetuado com sucesso!');
-      } else {
-        alert('Usuário ou senha incorretos!');
-      }
-    } else {
-      if (form.senha !== form.confSenha) return alert('As senhas não coincidem!');
-      if (!form.termos) return alert('Aceite os termos de uso!');
-      if (!validarCpfCnpj(form.cpf)) return alert('CPF ou CNPJ INVÁLIDO! Digite um documento real.');
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.senha,
+      });
 
-      const novaConta = { usuario: form.usuario, nome: form.nome, cpf: form.cpf, email: form.email, senha: form.senha };
-      const contasSalvas = JSON.parse(localStorage.getItem('rp_contas')) || [];
-      if (contasSalvas.find(c => c.usuario === form.usuario)) return alert('Usuário já existe!');
-      
-      contasSalvas.push(novaConta);
-      localStorage.setItem('rp_contas', JSON.stringify(contasSalvas));
-      alert('Conta criada com sucesso! Faça login.');
-      setIsLogin(true);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          showMessage('error', 'Email ou senha incorretos!');
+        } else if (error.message.includes('Email not confirmed')) {
+          showMessage('error', 'Por favor, confirme seu email antes de fazer login.');
+        } else {
+          showMessage('error', error.message);
+        }
+        return;
+      }
+
+      showMessage('success', 'Login realizado com sucesso!');
+      setUser(data.user);
+      onLogin(data.user.email);
+    } catch (error) {
+      showMessage('error', 'Erro ao fazer login. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    
+    if (form.senha !== form.confSenha) {
+      showMessage('error', 'As senhas não coincidem!');
+      return;
+    }
+    if (!form.termos) {
+      showMessage('error', 'Aceite os termos de uso!');
+      return;
+    }
+    if (!validarCpfCnpj(form.cpf)) {
+      showMessage('error', 'CPF ou CNPJ inválido! Digite um documento válido.');
+      return;
+    }
+    if (form.senha.length < 6) {
+      showMessage('error', 'A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.senha,
+        options: {
+          data: {
+            nome: form.nome,
+            cpf: form.cpf.replace(/\D/g, ''),
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          showMessage('error', 'Este email já está cadastrado.');
+        } else {
+          showMessage('error', error.message);
+        }
+        return;
+      }
+
+      if (data.user && !data.session) {
+        showMessage('success', 'Conta criada! Verifique seu email para confirmar o cadastro.');
+        setIsLogin(true);
+      } else if (data.session) {
+        showMessage('success', 'Conta criada e login realizado com sucesso!');
+        setUser(data.user);
+        onLogin(data.user.email);
+      }
+    } catch (error) {
+      showMessage('error', 'Erro ao criar conta. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      onLogout();
+      showMessage('success', 'Logout realizado com sucesso!');
+    } catch (error) {
+      showMessage('error', 'Erro ao fazer logout.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Tela de usuário logado
+  if (user) {
+    return (
+      <div className="flex justify-center px-5 py-10">
+        <div className="bg-white p-8 sm:p-10 rounded-lg shadow-lg w-full max-w-md border-t-4 border-[#b71c1c]">
+          <h2 className="text-2xl font-bold text-[#0d2137] mb-6 text-center">Minha Conta</h2>
+          
+          <div className="space-y-4 mb-8">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-500 mb-1">Email</p>
+              <p className="font-medium text-[#0d2137]">{user.email}</p>
+            </div>
+            
+            {user.user_metadata?.nome && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Nome</p>
+                <p className="font-medium text-[#0d2137]">{user.user_metadata.nome}</p>
+              </div>
+            )}
+            
+            {user.user_metadata?.cpf && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">CPF/CNPJ</p>
+                <p className="font-medium text-[#0d2137]">
+                  {user.user_metadata.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleLogout}
+            disabled={loading}
+            className="w-full bg-[#b71c1c] text-white py-3 rounded font-bold hover:bg-[#8e1616] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saindo...' : 'SAIR DA CONTA'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="conta-container">
-      <div className="conta-box">
-        <h2>{isLogin ? 'Acessar Conta' : 'Criar Conta'}</h2>
-        <form onSubmit={handleSubmit} className="form-conta">
-          <input type="text" name="usuario" placeholder="Usuário" required onChange={handleChange} />
+    <div className="flex justify-center px-5 py-10">
+      <div className="bg-white p-8 sm:p-10 rounded-lg shadow-lg w-full max-w-md border-t-4 border-[#b71c1c]">
+        <h2 className="text-2xl font-bold text-[#0d2137] mb-6 text-center">
+          {isLogin ? 'Acessar Conta' : 'Criar Conta'}
+        </h2>
+
+        {message.text && (
+          <div className={`mb-4 p-3 rounded text-sm text-center ${
+            message.type === 'error' 
+              ? 'bg-red-100 text-red-700 border border-red-300' 
+              : 'bg-green-100 text-green-700 border border-green-300'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        <form onSubmit={isLogin ? handleLogin : handleSignUp} className="flex flex-col gap-4">
           {!isLogin && (
             <>
-              <input type="text" name="nome" placeholder="Nome Completo" required onChange={handleChange} />
-              <input type="text" name="cpf" placeholder="CPF/CNPJ (Apenas números)" required onChange={handleChange} />
-              <input type="email" name="email" placeholder="E-mail" required onChange={handleChange} />
+              <input 
+                type="text" 
+                name="nome" 
+                placeholder="Nome Completo" 
+                required 
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
+              />
+              <input 
+                type="text" 
+                name="cpf" 
+                placeholder="CPF/CNPJ (Apenas números)" 
+                required 
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
+              />
             </>
           )}
-          <div className="senha-input-box">
-            <input type={showPassword ? "text" : "password"} name="senha" placeholder="Senha" required onChange={handleChange} />
-            <button type="button" onMouseDown={handleHoldPassword} onMouseUp={handleReleasePassword} onMouseLeave={handleReleasePassword} onTouchStart={handleHoldPassword} onTouchEnd={handleReleasePassword} className="btn-ver-senha">👁️</button>
+          
+          <input 
+            type="email" 
+            name="email" 
+            placeholder="E-mail" 
+            required 
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
+          />
+
+          <div className="relative">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              name="senha" 
+              placeholder="Senha" 
+              required 
+              onChange={handleChange}
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
+            />
+            <button 
+              type="button" 
+              onMouseDown={handleHoldPassword} 
+              onMouseUp={handleReleasePassword} 
+              onMouseLeave={handleReleasePassword} 
+              onTouchStart={handleHoldPassword} 
+              onTouchEnd={handleReleasePassword}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-gray-500 hover:text-gray-700 p-1"
+              aria-label="Mostrar senha"
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                  <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                </svg>
+              )}
+            </button>
           </div>
+
           {!isLogin && (
             <>
-              <input type="password" name="confSenha" placeholder="Confirmar Senha" required onChange={handleChange} />
-              <label className="termos-label">
-                <input type="checkbox" name="termos" required onChange={(e) => setForm({...form, termos: e.target.checked})} />
-                Aceito os termos de uso e políticas de privacidade
+              <input 
+                type="password" 
+                name="confSenha" 
+                placeholder="Confirmar Senha" 
+                required 
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
+              />
+              <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name="termos" 
+                  required 
+                  onChange={(e) => setForm({...form, termos: e.target.checked})}
+                  className="mt-0.5 accent-[#b71c1c]"
+                />
+                <span>Aceito os termos de uso e políticas de privacidade</span>
               </label>
             </>
           )}
-          <button type="submit" className="btn-submit-conta">{isLogin ? 'ENTRAR' : 'CADASTRAR'}</button>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-[#0d2137] text-white py-3 rounded font-bold hover:bg-[#1a3654] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          >
+            {loading ? 'Aguarde...' : (isLogin ? 'ENTRAR' : 'CADASTRAR')}
+          </button>
         </form>
-        <p onClick={() => setIsLogin(!isLogin)} className="toggle-conta">{isLogin ? 'Não tem conta? Crie uma.' : 'Já tem conta? Faça login.'}</p>
+
+        <p 
+          onClick={() => !loading && setIsLogin(!isLogin)} 
+          className="text-[#b71c1c] cursor-pointer mt-5 text-sm text-center underline hover:text-[#8e1616] transition-colors"
+        >
+          {isLogin ? 'Não tem conta? Crie uma.' : 'Já tem conta? Faça login.'}
+        </p>
       </div>
     </div>
   );
