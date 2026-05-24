@@ -5,7 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy }) {
+export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy, setPaginaAtual }) {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,17 +18,37 @@ export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy }) {
     const { name, value } = e.target;
     if (name === 'telefone') {
       setForm({ ...form, [name]: mTelefone(value) });
+    } else if (name === 'cpf') {
+      setForm({ ...form, [name]: mCPFCNPJ(value) });
     } else {
       setForm({ ...form, [name]: value });
     }
   };
 
+  // Máscara de Telefone: (99) 99999-9999
   const mTelefone = (value) => {
     if (!value) return "";
     value = value.replace(/\D/g, "");
     value = value.replace(/(\d{2})(\d)/, "($1) $2");
     value = value.replace(/(\d{5})(\d)/, "$1-$2");
     return value.slice(0, 15);
+  };
+
+  // Máscara Inteligente para CPF ou CNPJ
+  const mCPFCNPJ = (value) => {
+    if (!value) return "";
+    value = value.replace(/\D/g, "");
+    if (value.length <= 11) {
+      value = value.replace(/(\d{3})(\d)/, "$1.$2");
+      value = value.replace(/(\d{3})(\d)/, "$1.$2");
+      value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    } else {
+      value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+      value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+      value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+      value = value.replace(/(\d{4})(\d)/, "$1-$2");
+    }
+    return value.slice(0, 18);
   };
 
   const handleHoldPassword = (e) => { e.preventDefault(); setShowPassword(true); };
@@ -82,8 +102,12 @@ export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy }) {
       if (error) {
         alert(`Erro no login: ${error.message}`);
       } else {
+        // Pega apenas o nome cadastrado do usuário para exibir na tela (Resolve o [object Object])
+        const nomeDoUsuario = data.user.user_metadata?.nome_completo || data.user.email.split('@')[0];
+        if (onLogin) onLogin(nomeDoUsuario);
         alert('Login efetuado com sucesso!');
-        if (onLogin) onLogin(data.user);
+        // Redireciona para a página inicial logo em seguida
+        if (setPaginaAtual) setPaginaAtual('inicio');
       }
     } else {
       if (form.senha !== form.confSenha) {
@@ -99,7 +123,6 @@ export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy }) {
         return alert('CPF ou CNPJ INVÁLIDO! Digite um documento real.');
       }
 
-      // Removida a atribuição da variável 'data' para evitar o aviso do ESLint
       const { error } = await supabase.auth.signUp({
         email: form.email,
         password: form.senha,
@@ -140,7 +163,7 @@ export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy }) {
           {!isLogin && (
             <>
               <input type="text" name="nome" placeholder="Nome Completo" required value={form.nome} onChange={handleChange} />
-              <input type="text" name="cpf" placeholder="CPF/CNPJ (Apenas números)" required value={form.cpf} onChange={handleChange} />
+              <input type="text" name="cpf" placeholder="CPF/CNPJ" required value={form.cpf} onChange={handleChange} />
               <input 
                 type="text" 
                 name="telefone" 

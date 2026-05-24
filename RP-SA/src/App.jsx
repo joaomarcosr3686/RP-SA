@@ -51,7 +51,7 @@ function App() {
   const [paginaAtual, setPaginaAtual] = useState('inicio');
   const [slideAtual, setSlideAtual] = useState(0);
   const [servicoExpandido, setServicoExpandido] = useState(null);
-  const [modalAberto, setModalAberto] = useState(null); // 'termos' ou 'privacidade'
+  const [modalAberto, setModalAberto] = useState(null);
 
   const [usuarioLogado, setUsuarioLogado] = useState(() => {
     const logado = JSON.parse(localStorage.getItem('rp_logado'));
@@ -87,13 +87,14 @@ function App() {
         
         {(paginaAtual === 'inicio' || paginaAtual === 'encontre') && (
           <>
-            {/* Carrossel Corrigido com Deslizamento Lateral */}
-            <div className="carrossel-honda" style={{ overflow: 'hidden', position: 'relative' }}>
+            {/* CARROSSEL CORRIGIDO SEM TARJA PRETA */}
+            <div className="carrossel-honda" style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '400px' }}>
               <div 
                 className="carrossel-slides-container" 
                 style={{ 
                   display: 'flex', 
                   width: `${slides.length * 100}%`, 
+                  height: '100%',
                   transform: `translateX(-${(slideAtual * 100) / slides.length}%)`,
                   transition: 'transform 0.8s ease-in-out'
                 }}
@@ -102,7 +103,14 @@ function App() {
                   <div 
                     key={index} 
                     className="slide" 
-                    style={{ backgroundImage: `url(${slide})`, width: '100%', height: '400px', backgroundSize: 'cover', backgroundPosition: 'center' }}
+                    style={{ 
+                      backgroundImage: `url(${slide})`, 
+                      width: `${100 / slides.length}%`, // Garante que cada slide ocupe a largura exata sem deixar bordas
+                      height: '100%', 
+                      backgroundSize: 'cover', 
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
+                    }}
                   />
                 ))}
               </div>
@@ -135,7 +143,8 @@ function App() {
             <h2 className="titulo-secao">NOSSOS SERVIÇOS COMPLETOS</h2>
             <p style={{textAlign: 'center', marginBottom: '20px', color: '#666'}}>Clique em um serviço para expandir os detalhes</p>
             
-            <div className="lista-servicos-detalhada" style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '800px', margin: '0 auto' }}>
+            {/* CARDS DE SERVIÇOS COM LAYOUT NOVO E IMAGENS GRANDES */}
+            <div className="lista-servicos-detalhada" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto' }}>
               {servicosData.map((servico) => (
                 <div 
                   key={servico.id} 
@@ -143,29 +152,31 @@ function App() {
                   onClick={() => toggleServico(servico.id)}
                   style={{ 
                     backgroundColor: '#fff', 
-                    borderRadius: '8px', 
+                    borderRadius: '12px', 
                     padding: '20px', 
-                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)', 
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)', 
                     cursor: 'pointer', 
                     transition: 'all 0.3s ease-in-out'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <img src={servico.img} alt={servico.titulo} style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
-                    <h3 style={{ margin: 0, fontSize: '20px', color: '#111' }}>{servico.titulo}</h3>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', flexWrap: 'wrap' }}>
+                    <img src={servico.img} alt={servico.titulo} style={{ width: '130px', height: '120px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, boxShadow: '0 2px 5px rgba(0,0,0,0.15)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, minWidth: '200px', paddingTop: '10px' }}>
+                      <h3 style={{ margin: 0, fontSize: '22px', color: '#111' }}>{servico.titulo}</h3>
+                      <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#888', fontWeight: '500' }}>Toque para expandir detalhes 👇</p>
+                    </div>
                   </div>
                   
-                  {/* Conteúdo da Sanfona Expandida de forma suave */}
                   <div style={{ 
                     maxHeight: servicoExpandido === servico.id ? '500px' : '0', 
                     opacity: servicoExpandido === servico.id ? '1' : '0',
                     overflow: 'hidden', 
                     transition: 'all 0.3s ease-in-out',
-                    marginTop: servicoExpandido === servico.id ? '15px' : '0'
+                    marginTop: servicoExpandido === servico.id ? '20px' : '0'
                   }}>
-                    <div style={{ padding: '15px 0 0 0', borderTop: '1px solid #eee', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ padding: '15px 10px', borderTop: '1px solid #ddd', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#f9f9f9', borderRadius: '6px' }}>
                       <p><strong>📝 Descrição:</strong> {servico.desc}</p>
-                      <p><strong>⚠️ Sintomas para Manutenção:</strong> {servico.sintomas}</p>
+                      <p><strong>⚠️ Quando revisar:</strong> {servico.sintomas}</p>
                       <p><strong>🔧 O que é feito:</strong> {servico.feito}</p>
                     </div>
                   </div>
@@ -178,6 +189,7 @@ function App() {
         {paginaAtual === 'conta' && (
           <MyAccount 
             onLogin={setUsuarioLogado} 
+            setPaginaAtual={setPaginaAtual}
             onOpenTerms={() => setModalAberto('termos')}
             onOpenPrivacy={() => setModalAberto('privacidade')}
           />
@@ -185,7 +197,6 @@ function App() {
 
       </main>
 
-      {/* Janelas Modais dos Termos de Uso e Privacidade */}
       {modalAberto && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '8px', maxWidth: '500px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }}>
