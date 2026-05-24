@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function MinhaConta({ onLogin, onLogout }) {
+export default function MinhaConta({ onLogin, onLogout, abrirModal }) {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -9,25 +9,23 @@ export default function MinhaConta({ onLogin, onLogout }) {
   const [user, setUser] = useState(null);
   
   const [form, setForm] = useState({
-    nome: '', cpf: '', email: '', senha: '', confSenha: '', termos: false
+    nome: '', cpf: '', telefone: '', email: '', senha: '', confSenha: '', termos: false
   });
 
   useEffect(() => {
-    // Verifica se já existe uma sessão ativa
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        onLogin(session.user.email);
+        onLogin(session.user.user_metadata?.nome || session.user.email);
       }
     };
     checkSession();
 
-    // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user);
-        onLogin(session.user.email);
+        onLogin(session.user.user_metadata?.nome || session.user.email);
       } else {
         setUser(null);
       }
@@ -36,12 +34,32 @@ export default function MinhaConta({ onLogin, onLogout }) {
     return () => subscription.unsubscribe();
   }, [onLogin]);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'telefone') {
+      const formatted = formatarTelefone(value);
+      setForm({ ...form, [name]: formatted });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const formatarTelefone = (valor) => {
+    const numeros = valor.replace(/\D/g, '');
+    
+    if (numeros.length <= 2) {
+      return numeros.length ? `(${numeros}` : '';
+    } else if (numeros.length <= 7) {
+      return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+    } else {
+      return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7, 11)}`;
+    }
+  };
 
   const handleHoldPassword = (e) => { e.preventDefault(); setShowPassword(true); };
   const handleReleasePassword = () => setShowPassword(false);
 
-  // === VALIDACAO DE CPF E CNPJ ===
   const validarCpfCnpj = (val) => {
     const doc = val.replace(/\D/g, '');
     if (doc.length === 11) return validarCPF(doc);
@@ -77,6 +95,11 @@ export default function MinhaConta({ onLogin, onLogout }) {
     return true;
   };
 
+  const validarTelefone = (telefone) => {
+    const numeros = telefone.replace(/\D/g, '');
+    return numeros.length === 10 || numeros.length === 11;
+  };
+
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
@@ -105,7 +128,7 @@ export default function MinhaConta({ onLogin, onLogout }) {
 
       showMessage('success', 'Login realizado com sucesso!');
       setUser(data.user);
-      onLogin(data.user.email);
+      onLogin(data.user.user_metadata?.nome || data.user.email);
     } catch (error) {
       showMessage('error', 'Erro ao fazer login. Tente novamente.');
     } finally {
@@ -128,6 +151,10 @@ export default function MinhaConta({ onLogin, onLogout }) {
       showMessage('error', 'CPF ou CNPJ inválido! Digite um documento válido.');
       return;
     }
+    if (!validarTelefone(form.telefone)) {
+      showMessage('error', 'Telefone inválido! Digite um número com DDD.');
+      return;
+    }
     if (form.senha.length < 6) {
       showMessage('error', 'A senha deve ter pelo menos 6 caracteres.');
       return;
@@ -143,6 +170,7 @@ export default function MinhaConta({ onLogin, onLogout }) {
           data: {
             nome: form.nome,
             cpf: form.cpf.replace(/\D/g, ''),
+            telefone: form.telefone.replace(/\D/g, ''),
           },
         },
       });
@@ -162,7 +190,7 @@ export default function MinhaConta({ onLogin, onLogout }) {
       } else if (data.session) {
         showMessage('success', 'Conta criada e login realizado com sucesso!');
         setUser(data.user);
-        onLogin(data.user.email);
+        onLogin(data.user.user_metadata?.nome || data.user.email);
       }
     } catch (error) {
       showMessage('error', 'Erro ao criar conta. Tente novamente.');
@@ -185,7 +213,24 @@ export default function MinhaConta({ onLogin, onLogout }) {
     }
   };
 
-  // Tela de usuário logado
+  const formatarCpfExibicao = (cpf) => {
+    if (cpf.length === 11) {
+      return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (cpf.length === 14) {
+      return cpf.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    return cpf;
+  };
+
+  const formatarTelefoneExibicao = (tel) => {
+    if (tel.length === 10) {
+      return tel.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    } else if (tel.length === 11) {
+      return tel.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    }
+    return tel;
+  };
+
   if (user) {
     return (
       <div className="flex justify-center px-5 py-10">
@@ -209,7 +254,16 @@ export default function MinhaConta({ onLogin, onLogout }) {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 mb-1">CPF/CNPJ</p>
                 <p className="font-medium text-[#0d2137]">
-                  {user.user_metadata.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}
+                  {formatarCpfExibicao(user.user_metadata.cpf)}
+                </p>
+              </div>
+            )}
+
+            {user.user_metadata?.telefone && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Telefone/WhatsApp</p>
+                <p className="font-medium text-[#0d2137]">
+                  {formatarTelefoneExibicao(user.user_metadata.telefone)}
                 </p>
               </div>
             )}
@@ -261,6 +315,16 @@ export default function MinhaConta({ onLogin, onLogout }) {
                 placeholder="CPF/CNPJ (Apenas números)" 
                 required 
                 onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
+              />
+              <input 
+                type="tel" 
+                name="telefone" 
+                placeholder="Telefone/WhatsApp" 
+                required 
+                value={form.telefone}
+                onChange={handleChange}
+                maxLength={15}
                 className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#b71c1c] focus:ring-1 focus:ring-[#b71c1c] transition-colors"
               />
             </>
@@ -326,7 +390,22 @@ export default function MinhaConta({ onLogin, onLogout }) {
                   onChange={(e) => setForm({...form, termos: e.target.checked})}
                   className="mt-0.5 accent-[#b71c1c]"
                 />
-                <span>Aceito os termos de uso e políticas de privacidade</span>
+                <span>
+                  Aceito os{' '}
+                  <a 
+                    onClick={(e) => { e.preventDefault(); abrirModal('termos'); }} 
+                    className="text-[#b71c1c] underline cursor-pointer hover:text-[#8e1616]"
+                  >
+                    termos de uso
+                  </a>
+                  {' '}e{' '}
+                  <a 
+                    onClick={(e) => { e.preventDefault(); abrirModal('privacidade'); }} 
+                    className="text-[#b71c1c] underline cursor-pointer hover:text-[#8e1616]"
+                  >
+                    políticas de privacidade
+                  </a>
+                </span>
               </label>
             </>
           )}

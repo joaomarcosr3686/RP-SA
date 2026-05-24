@@ -6,17 +6,125 @@ import imgInjecao from './assets/injecao.png';
 import imgFreios from './assets/suspensao.png';
 import imgSlide1 from './assets/imagem1.jpg';
 import imgSlide2 from './assets/imagem2.jpg';
-import imgRetifica from '.assets/retifica';
-import imgarCondicionado from '.assets/ar-condicionado';
+import imgRetifica from './assets/retifica.png';
+import imgarCondicionado from './assets/ar-condicionado.png';
 
 import Header from './components/Header';
 import MinhaConta from './components/MinhaConta';
+import TermosModal from './components/TermosModal';
 
 const slides = [imgSlide1, imgSlide2];
+
+// Dados dos serviços com descrições detalhadas
+const servicosData = [
+  {
+    id: 'mecanica',
+    titulo: 'Mecânica Geral e Revisão',
+    imagem: imgMecanica,
+    descricao: 'Realizamos manutenção completa do seu veículo, incluindo troca de óleo, filtros, correias, velas, embreagem e muito mais. Nossa equipe é especializada em todas as marcas e modelos.',
+    sintomas: [
+      'Ruídos estranhos no motor ou rodas',
+      'Dificuldade para dar partida',
+      'Consumo excessivo de combustível',
+      'Vazamentos de fluidos',
+      'Quilometragem para revisão atingida'
+    ],
+    oqueFazemos: [
+      'Diagnóstico completo do veículo',
+      'Troca de óleo e filtros',
+      'Verificação de correias e tensores',
+      'Inspeção de velas e bobinas',
+      'Checagem de níveis de fluidos'
+    ]
+  },
+  {
+    id: 'injecao',
+    titulo: 'Diagnóstico de Injeção Eletrônica',
+    imagem: imgInjecao,
+    descricao: 'Utilizamos equipamentos de última geração para diagnosticar e resolver problemas no sistema de injeção eletrônica do seu veículo, garantindo melhor desempenho e economia.',
+    sintomas: [
+      'Luz de injeção acesa no painel',
+      'Motor falhando ou engasgando',
+      'Perda de potência',
+      'Consumo anormal de combustível',
+      'Marcha lenta irregular'
+    ],
+    oqueFazemos: [
+      'Leitura e apagamento de códigos de falha',
+      'Limpeza de bicos injetores',
+      'Teste de sensores e atuadores',
+      'Reprogramação de módulos',
+      'Substituição de componentes defeituosos'
+    ]
+  },
+  {
+    id: 'suspensao',
+    titulo: 'Suspensão, Freios e Geometria',
+    imagem: imgFreios,
+    descricao: 'Cuidamos da segurança do seu veículo com serviços de suspensão, freios e alinhamento. Trabalhamos com peças de qualidade para garantir sua tranquilidade ao dirigir.',
+    sintomas: [
+      'Veículo puxando para um lado',
+      'Desgaste irregular dos pneus',
+      'Barulhos ao passar em buracos',
+      'Pedal de freio baixo ou esponjoso',
+      'Vibração no volante ao frear'
+    ],
+    oqueFazemos: [
+      'Troca de amortecedores e molas',
+      'Substituição de bandejas e pivôs',
+      'Troca de pastilhas e discos de freio',
+      'Alinhamento e balanceamento',
+      'Geometria computadorizada'
+    ]
+  },
+  {
+    id: 'ar',
+    titulo: 'Manutenção de Ar-Condicionado',
+    imagem: imgarCondicionado,
+    descricao: 'Oferecemos serviços completos de ar-condicionado automotivo, desde a simples recarga de gás até reparos no compressor e evaporador.',
+    sintomas: [
+      'Ar não gela como antes',
+      'Mau cheiro ao ligar o ar',
+      'Ruídos ao acionar o sistema',
+      'Vazamento de água dentro do carro',
+      'Ar condicionado não liga'
+    ],
+    oqueFazemos: [
+      'Recarga de gás refrigerante',
+      'Higienização do sistema',
+      'Troca do filtro de cabine',
+      'Reparo de compressor',
+      'Verificação de vazamentos'
+    ]
+  },
+  {
+    id: 'retifica',
+    titulo: 'Retífica de Motores',
+    imagem: imgRetifica,
+    descricao: 'Serviço especializado de retífica de motores, recuperando a performance original do seu veículo. Trabalhamos com precisão e qualidade.',
+    sintomas: [
+      'Consumo excessivo de óleo',
+      'Fumaça branca ou azul no escapamento',
+      'Perda significativa de potência',
+      'Superaquecimento do motor',
+      'Ruídos internos no motor'
+    ],
+    oqueFazemos: [
+      'Desmontagem e análise do motor',
+      'Retífica de cabeçote e bloco',
+      'Troca de anéis, bronzinas e juntas',
+      'Usinagem de peças',
+      'Montagem e teste do motor'
+    ]
+  }
+];
 
 function App() {
   const [paginaAtual, setPaginaAtual] = useState('inicio');
   const [slideAtual, setSlideAtual] = useState(0);
+  const [fadeSlide, setFadeSlide] = useState(true);
+  const [servicoExpandido, setServicoExpandido] = useState(null);
+  const [modalTermos, setModalTermos] = useState({ aberto: false, tipo: '' });
 
   const [usuarioLogado, setUsuarioLogado] = useState(null);
 
@@ -26,7 +134,11 @@ function App() {
 
   useEffect(() => {
     const intervalo = setInterval(() => {
-      setSlideAtual((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+      setFadeSlide(false);
+      setTimeout(() => {
+        setSlideAtual((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+        setFadeSlide(true);
+      }, 300);
     }, 4000); 
     
     return () => clearInterval(intervalo);
@@ -35,6 +147,18 @@ function App() {
   const handleContact = () => {
     const msg = encodeURIComponent("Olá RP Serviços Automotivos, gostaria de um orçamento!");
     window.open(`https://wa.me/554830561212?text=${msg}`, '_blank');
+  };
+
+  const toggleServico = (id) => {
+    setServicoExpandido(servicoExpandido === id ? null : id);
+  };
+
+  const abrirModal = (tipo) => {
+    setModalTermos({ aberto: true, tipo });
+  };
+
+  const fecharModal = () => {
+    setModalTermos({ aberto: false, tipo: '' });
   };
 
   return (
@@ -51,7 +175,10 @@ function App() {
         {(paginaAtual === 'inicio' || paginaAtual === 'encontre') && (
           <>
             <div className="carrossel-honda">
-              <div className="slide" style={{ backgroundImage: `url(${slides[slideAtual]})` }}>
+              <div 
+                className={`slide ${fadeSlide ? 'fade-in' : 'fade-out'}`} 
+                style={{ backgroundImage: `url(${slides[slideAtual]})` }}
+              >
               </div>
             </div>
 
@@ -80,18 +207,56 @@ function App() {
         {paginaAtual === 'servicos' && (
           <div className="pagina-servicos">
             <h2 className="titulo-secao">NOSSOS SERVIÇOS COMPLETOS</h2>
-            <div className="lista-servicos-detalhada">
-               <div className="card-servico"><img src={imgMecanica} alt="Mecânica" className="foto-servico" /><p>Mecânica Geral e Revisão</p></div>
-               <div className="card-servico"><img src={imgInjecao} alt="Injeção" className="foto-servico" /><p>Diagnóstico de Injeção Eletrônica</p></div>
-               <div className="card-servico"><img src={imgFreios} alt="Freios" className="foto-servico" /><p>Suspensão, Freios e Geometria</p></div>
-               <div className="card-servico"><img src={imgarCondicionado} alt="Ar-Condicionado" classname="foto-servico" /><p>Manutenção de Ar-Condicionado</p></div>
-               <div className="card-servico"><img src={imgRetifica} alt="Retifica" classname="foto-servico" /> <p>Retifica</p></div>
+            <div className="lista-servicos-accordion">
+              {servicosData.map((servico) => (
+                <div key={servico.id} className="accordion-item">
+                  <div 
+                    className={`accordion-header ${servicoExpandido === servico.id ? 'ativo' : ''}`}
+                    onClick={() => toggleServico(servico.id)}
+                  >
+                    <img src={servico.imagem} alt={servico.titulo} className="accordion-img" />
+                    <p className="accordion-titulo">{servico.titulo}</p>
+                    <span className={`accordion-seta ${servicoExpandido === servico.id ? 'aberta' : ''}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6,9 12,15 18,9"></polyline>
+                      </svg>
+                    </span>
+                  </div>
+                  <div className={`accordion-content ${servicoExpandido === servico.id ? 'expandido' : ''}`}>
+                    <div className="accordion-inner">
+                      <div className="servico-secao">
+                        <h4>Sobre o Serviço</h4>
+                        <p>{servico.descricao}</p>
+                      </div>
+                      <div className="servico-secao">
+                        <h4>Quando Procurar?</h4>
+                        <ul>
+                          {servico.sintomas.map((sintoma, idx) => (
+                            <li key={idx}>{sintoma}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="servico-secao">
+                        <h4>O Que Fazemos</h4>
+                        <ul>
+                          {servico.oqueFazemos.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button className="btn-orcamento" onClick={handleContact}>
+                        SOLICITAR ORÇAMENTO
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {paginaAtual === 'conta' && (
-          <MinhaConta onLogin={setUsuarioLogado} onLogout={handleLogout} />
+          <MinhaConta onLogin={setUsuarioLogado} onLogout={handleLogout} abrirModal={abrirModal} />
         )}
 
       </main>
@@ -135,12 +300,18 @@ function App() {
         <div className="rodape-cinza">
           <p>DESACELERE. SEU BEM MAIOR É A VIDA.</p>
           <div className="rodape-cinza-links">
-            <a>Política de privacidade</a>
-            <a>Termos de uso</a>
+            <a onClick={() => abrirModal('privacidade')} style={{cursor: 'pointer'}}>Política de privacidade</a>
+            <a onClick={() => abrirModal('termos')} style={{cursor: 'pointer'}}>Termos de uso</a>
             <span>Copyright © RP Serviços Automotivos - CNPJ: 36.338.745/0001-02</span>
           </div>
         </div>
       </footer>
+
+      <TermosModal 
+        aberto={modalTermos.aberto} 
+        tipo={modalTermos.tipo} 
+        onClose={fecharModal} 
+      />
     </div>
   );
 }
