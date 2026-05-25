@@ -51,6 +51,8 @@ function App() {
   const [paginaAtual, setPaginaAtual] = useState('inicio');
   const [slideAtual, setSlideAtual] = useState(0);
   const [servicoExpandido, setServicoExpandido] = useState(null);
+  
+  // O modalAberto agora pode ser: 'termos', 'privacidade', 'sobre', 'estrutura' ou null
   const [modalAberto, setModalAberto] = useState(null);
 
   const [usuarioLogado, setUsuarioLogado] = useState(() => {
@@ -87,14 +89,13 @@ function App() {
         
         {(paginaAtual === 'inicio' || paginaAtual === 'encontre') && (
           <>
-            {/* CARROSSEL CORRIGIDO SEM TARJA PRETA */}
-            <div className="carrossel-honda" style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '400px' }}>
+            {/* CARROSSEL CORRIGIDO PARA RESOLUÇÃO 1856x576 */}
+            <div className="carrossel-honda" style={{ overflow: 'hidden', position: 'relative', width: '100%' }}>
               <div 
                 className="carrossel-slides-container" 
                 style={{ 
                   display: 'flex', 
                   width: `${slides.length * 100}%`, 
-                  height: '100%',
                   transform: `translateX(-${(slideAtual * 100) / slides.length}%)`,
                   transition: 'transform 0.8s ease-in-out'
                 }}
@@ -105,11 +106,12 @@ function App() {
                     className="slide" 
                     style={{ 
                       backgroundImage: `url(${slide})`, 
-                      width: `${100 / slides.length}%`, // Garante que cada slide ocupe a largura exata sem deixar bordas
-                      height: '100%', 
+                      width: `${100 / slides.length}%`, 
+                      aspectRatio: '1856 / 576', /* A mágica que impede o corte da imagem em qualquer tela! */
                       backgroundSize: 'cover', 
                       backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat'
+                      backgroundRepeat: 'no-repeat',
+                      flexShrink: 0 /* Impede que o celular esprema o slide */
                     }}
                   />
                 ))}
@@ -143,7 +145,6 @@ function App() {
             <h2 className="titulo-secao">NOSSOS SERVIÇOS COMPLETOS</h2>
             <p style={{textAlign: 'center', marginBottom: '20px', color: '#666'}}>Clique em um serviço para expandir os detalhes</p>
             
-            {/* CARDS DE SERVIÇOS COM LAYOUT NOVO E IMAGENS GRANDES */}
             <div className="lista-servicos-detalhada" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto' }}>
               {servicosData.map((servico) => (
                 <div 
@@ -197,17 +198,52 @@ function App() {
 
       </main>
 
+      {/* JANELAS MODAIS DINÂMICAS */}
       {modalAberto && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '8px', maxWidth: '500px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }}>
-            <h3>{modalAberto === 'termos' ? 'Termos de Uso' : 'Política de Privacidade'}</h3>
-            <p style={{ textAlign: 'left', whiteSpace: 'pre-line', color: '#444', fontSize: '14px', marginTop: '15px' }}>
-              {modalAberto === 'termos' 
-                ? "Ao utilizar os serviços da RP Serviços Automotivos, você concorda em fornecer dados cadastrais verídicos para a realização de ordens de serviço e orçamentos. Suas informações de login são de uso pessoal e intransferível. Garantimos a correta execução dos serviços prestados em nossa oficina mecânica conforme as normas vigentes." 
-                : "A RP Serviços Automotivos tem o compromisso de proteger sua privacidade. Os dados coletados no cadastro (Nome, CPF/CNPJ, E-mail e Telefone) são guardados de forma segura e utilizados estritamente para o controle interno de atendimentos, histórico do veículo, emissão de notas fiscais e envio de orçamentos via WhatsApp. Não compartilhamos seus dados com terceiros."
-              }
-            </p>
-            <button onClick={() => setModalAberto(null)} style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#e50914', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Fechar</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={() => setModalAberto(null)}>
+          <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '12px', maxWidth: '600px', width: '100%', maxHeight: '85vh', overflowY: 'auto', position: 'relative', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }} onClick={(e) => e.stopPropagation()}>
+            
+            {modalAberto === 'termos' && (
+              <>
+                <h3 style={{ borderBottom: '2px solid #e50914', paddingBottom: '10px' }}>Termos de Uso</h3>
+                <p style={{ textAlign: 'left', whiteSpace: 'pre-line', color: '#444', fontSize: '15px', marginTop: '15px', lineHeight: '1.6' }}>
+                  Ao utilizar os serviços da RP Serviços Automotivos, você concorda em fornecer dados cadastrais verídicos para a realização de ordens de serviço e orçamentos. Suas informações de login são de uso pessoal e intransferível. Garantimos a correta execução dos serviços prestados em nossa oficina mecânica conforme as normas vigentes.
+                </p>
+              </>
+            )}
+
+            {modalAberto === 'privacidade' && (
+              <>
+                <h3 style={{ borderBottom: '2px solid #e50914', paddingBottom: '10px' }}>Política de Privacidade</h3>
+                <p style={{ textAlign: 'left', whiteSpace: 'pre-line', color: '#444', fontSize: '15px', marginTop: '15px', lineHeight: '1.6' }}>
+                  A RP Serviços Automotivos tem o compromisso de proteger sua privacidade. Os dados coletados no cadastro (Nome, CPF/CNPJ, E-mail e Telefone) são guardados de forma segura e utilizados estritamente para o controle interno de atendimentos, histórico do veículo, emissão de notas fiscais e envio de orçamentos via WhatsApp. Não compartilhamos seus dados com terceiros.
+                </p>
+              </>
+            )}
+
+            {modalAberto === 'sobre' && (
+              <>
+                <h3 style={{ borderBottom: '2px solid #e50914', paddingBottom: '10px' }}>Sobre a RP Serviços</h3>
+                <p style={{ textAlign: 'left', color: '#444', fontSize: '15px', marginTop: '15px', lineHeight: '1.6' }}>
+                  A RP Serviços Automotivos nasceu da paixão pela mecânica e pelo compromisso em entregar resultados de excelência. Nós não apenas trocamos peças, nós diagnosticamos e resolvemos o problema do seu veículo com total transparência. Trabalhamos com as melhores ferramentas e peças do mercado para garantir que seu carro saia da nossa oficina com segurança e performance máxima. Seu bem maior é a vida, e nós cuidamos da máquina que transporta você.
+                </p>
+              </>
+            )}
+
+            {modalAberto === 'estrutura' && (
+              <>
+                <h3 style={{ borderBottom: '2px solid #e50914', paddingBottom: '10px' }}>Nossa Estrutura</h3>
+                <p style={{ textAlign: 'left', color: '#444', fontSize: '15px', marginTop: '15px', lineHeight: '1.6' }}>
+                  Contamos com um espaço amplo e limpo, equipado com elevadores modernos e ferramentas de diagnóstico computadorizado avançadas para atender desde revisões básicas até retíficas complexas.
+                </p>
+                {/* ESPAÇO RESERVADO PARA A FOTO DA ESTRUTURA */}
+                <div style={{ width: '100%', height: '250px', backgroundColor: '#f0f0f0', border: '2px dashed #bbb', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '20px' }}>
+                  <span style={{ color: '#888', fontWeight: '500' }}>[Foto da Oficina Aqui]</span>
+                </div>
+              </>
+            )}
+
+            <button onClick={() => setModalAberto(null)} style={{ marginTop: '25px', padding: '12px 20px', backgroundColor: '#e50914', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%', fontSize: '16px' }}>FECHAR</button>
           </div>
         </div>
       )}
@@ -227,8 +263,9 @@ function App() {
           <div className="rodape-links">
             <div className="coluna-links">
               <h4>RP Serviços</h4>
-              <a href="#sobre">Sobre nós</a>
-              <a href="#estrutura">Nossa Estrutura</a>
+              {/* BOTÕES SOBRE E ESTRUTURA ATIVADOS */}
+              <a onClick={() => setModalAberto('sobre')} style={{cursor: 'pointer'}}>Sobre nós</a>
+              <a onClick={() => setModalAberto('estrutura')} style={{cursor: 'pointer'}}>Nossa Estrutura</a>
               <a href="mailto:rp10ponto@gmail.com?subject=Curriculo%20-%20RP%20Servicos%20Automotivos&body=Olá,%20gostaria%20de%20enviar%20meu%20currículo." className="botao-trabalhe-conosco">
                 Trabalhe Conosco
               </a>
