@@ -11,6 +11,7 @@ import imgSlide2 from './assets/imagem2.jpg';
 
 import Header from './components/Header';
 import MyAccount from './components/MyAccount';
+import MeusCarros from './components/MyCars';
 
 const slides = [imgSlide1, imgSlide2];
 
@@ -195,6 +196,13 @@ function App() {
             onOpenPrivacy={() => setModalAberto('privacidade')}
           />
         )}
+
+        {paginaAtual === 'meus-carros' && (
+          <MeusCarros 
+            usuarioLogado={usuarioLogado}
+            onOpenTerms={() => setModalAberto('termos')}
+          />
+)}
 
       </main>
 
