@@ -55,13 +55,12 @@ export default function Header({ logo, onContact, setPaginaAtual, usuarioLogado 
           <a onClick={() => irPara('inicio')}>Início</a>
           <a onClick={() => irPara('servicos')}>Serviços</a>
           <a onClick={() => irPara('encontre')}>Encontre-nos</a>
-          <a onClick={() => irPara('conta')}>Minha Conta</a>
 
           {usuarioLogado && (
-    <a onClick={() => irPara('meus-carros')} style={{ color: '#e50914', fontWeight: 'bold' }}>Meus Carros</a>
+          <a onClick={() => irPara('meus-carros')} style={{ color: '#e50914', fontWeight: 'bold' }}>Meus Carros</a>
   )}
-  
-  <a onClick={() => irPara('conta')}>Minha Conta</a>
+
+<a onClick={() => irPara('conta')}>Minha Conta</a>
         </nav>
       </div>
       {menuAberto && <div className="fundo-escuro-menu" onClick={() => setMenuAberto(false)}></div>}
