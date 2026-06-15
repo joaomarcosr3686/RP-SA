@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../lib/supabaseClient';
 
 export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy, setPaginaAtual }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -102,8 +98,8 @@ export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy, setPagi
       if (error) {
         alert(`Erro no login: ${error.message}`);
       } else {
-        // Pega apenas o nome cadastrado do usuário para exibir na tela (Resolve o [object Object])
-        const nomeDoUsuario = data.user.user_metadata?.nome_completo || data.user.email.split('@')[0];
+        // Pega o nome do perfil (profiles) e usa o metadata/email apenas como fallback.
+        const nomeDoUsuario = await resolverNomeUsuario(data.user);
         if (onLogin) onLogin(nomeDoUsuario);
         alert('Login efetuado com sucesso!');
         // Redireciona para a página inicial logo em seguida
@@ -123,26 +119,84 @@ export default function MyAccount({ onLogin, onOpenTerms, onOpenPrivacy, setPagi
         return alert('CPF ou CNPJ INVÁLIDO! Digite um documento real.');
       }
 
-      const { error } = await supabase.auth.signUp({
+      // LGPD: NÃO enviamos dados sensíveis (cpf_cnpj, telefone) para o
+      // raw_user_meta_data do auth.users. Apenas o nome fica no metadata
+      // (para exibição rápida); os dados sensíveis vão para a tabela "profiles".
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.senha,
         options: {
           data: {
             nome_completo: form.nome,
-            cpf_cnpj: form.cpf,
-            telefone: form.telefone
-          }
-        }
+          },
+        },
       });
 
       if (error) {
         alert(`Erro ao criar conta: ${error.message}`);
+        setLoading(false);
+        return;
+      }
+
+      // Garante uma sessão autenticada para conseguir gravar em "profiles"
+      // (a RLS exige auth.uid() = id). Quando a confirmação de e-mail está
+      // desativada, o signUp já retorna sessão; caso contrário, autenticamos.
+      let userId = signUpData?.user?.id;
+      let sessionAtiva = !!signUpData?.session;
+
+      if (!sessionAtiva) {
+        const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+          email: form.email,
+          password: form.senha,
+        });
+        if (!loginErr && loginData?.user) {
+          userId = loginData.user.id;
+          sessionAtiva = true;
+        }
+      }
+
+      if (sessionAtiva && userId) {
+        const { error: perfilErr } = await supabase.from('profiles').upsert({
+          id: userId,
+          nome_completo: form.nome,
+          cpf_cnpj: form.cpf,
+          telefone: form.telefone,
+          updated_at: new Date().toISOString(),
+        });
+
+        if (perfilErr) {
+          console.log('[v0] Erro ao salvar profile:', perfilErr.message);
+          alert('Conta criada, mas houve um erro ao salvar seus dados de perfil. Tente atualizar mais tarde em "Minha Conta".');
+        } else {
+          alert('Conta criada com sucesso!');
+        }
+
+        // Usuário já está logado: leva direto para o início.
+        if (onLogin) onLogin(form.nome || form.email.split('@')[0]);
+        if (setPaginaAtual) setPaginaAtual('inicio');
       } else {
-        alert('Conta criada com sucesso! Você já pode fazer login.');
+        // Confirmação de e-mail ativada: o perfil será salvo no primeiro login.
+        alert('Conta criada! Confirme seu e-mail e depois faça login para concluir o cadastro.');
         setIsLogin(true);
       }
     }
     setLoading(false);
+  };
+
+  // Resolve o nome de exibição priorizando a tabela "profiles".
+  const resolverNomeUsuario = async (user) => {
+    if (!user) return '';
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('nome_completo')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    return (
+      perfil?.nome_completo ||
+      user.user_metadata?.nome_completo ||
+      user.email.split('@')[0]
+    );
   };
 
   return (

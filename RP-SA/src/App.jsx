@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './App.css';
+import { supabase } from './lib/supabaseClient';
 import logoImg from './assets/logo.png';
 import imgMecanica from './assets/mecanica.png';
 import imgInjecao from './assets/injecao.png';
@@ -56,10 +57,7 @@ function App() {
   // O modalAberto agora pode ser: 'termos', 'privacidade', 'sobre', 'estrutura' ou null
   const [modalAberto, setModalAberto] = useState(null);
 
-  const [usuarioLogado, setUsuarioLogado] = useState(() => {
-    const logado = JSON.parse(localStorage.getItem('rp_logado'));
-    return logado ? logado.usuario : null;
-  });
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
 
   useEffect(() => {
     const intervalo = setInterval(() => {
@@ -67,6 +65,54 @@ function App() {
     }, 5000); 
     return () => clearInterval(intervalo);
   }, []);
+
+  // Sincroniza o estado de login com a sessão real do Supabase.
+  // Isso resolve o bug de "login por cima de outro": a fonte da verdade
+  // passa a ser a sessão do Supabase, e não um estado solto/localStorage.
+  useEffect(() => {
+    const resolverNome = async (user) => {
+      if (!user) return null;
+      const { data: perfil } = await supabase
+        .from('profiles')
+        .select('nome_completo')
+        .eq('id', user.id)
+        .maybeSingle();
+      return (
+        perfil?.nome_completo ||
+        user.user_metadata?.nome_completo ||
+        user.email.split('@')[0]
+      );
+    };
+
+    // Sessão inicial (ao recarregar a página).
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setUsuarioLogado(await resolverNome(session?.user));
+    });
+
+    // Atualizações em tempo real (login, logout, refresh de token).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUsuarioLogado(await resolverNome(session?.user));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Acessibilidade: fecha o modal ativo ao pressionar ESC.
+  useEffect(() => {
+    if (!modalAberto) return;
+    const aoPressionarTecla = (e) => {
+      if (e.key === 'Escape') setModalAberto(null);
+    };
+    window.addEventListener('keydown', aoPressionarTecla);
+    return () => window.removeEventListener('keydown', aoPressionarTecla);
+  }, [modalAberto]);
+
+  // Logout: encerra a sessão no Supabase e volta para o início.
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUsuarioLogado(null);
+    setPaginaAtual('inicio');
+  };
 
   const handleContact = () => {
     const msg = encodeURIComponent("Olá RP Serviços Automotivos, gostaria de um orçamento!");
@@ -84,6 +130,7 @@ function App() {
         onContact={handleContact} 
         setPaginaAtual={setPaginaAtual} 
         usuarioLogado={usuarioLogado}
+        onLogout={handleLogout}
       />
 
       <main className="conteudo-principal">
@@ -144,57 +191,81 @@ function App() {
         {paginaAtual === 'servicos' && (
           <div className="pagina-servicos">
             <h2 className="titulo-secao">NOSSOS SERVIÇOS COMPLETOS</h2>
-            <p style={{textAlign: 'center', marginBottom: '20px', color: '#666'}}>Clique em um serviço para expandir os detalhes</p>
-            
-            <div className="lista-servicos-detalhada" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto' }}>
-              {servicosData.map((servico) => (
-                <div 
-                  key={servico.id} 
-                  className={`card-servico-longo ${servicoExpandido === servico.id ? 'expandido' : ''}`}
-                  onClick={() => toggleServico(servico.id)}
-                  style={{ 
-                    backgroundColor: '#fff', 
-                    borderRadius: '12px', 
-                    padding: '20px', 
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)', 
-                    cursor: 'pointer', 
-                    transition: 'all 0.3s ease-in-out'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', flexWrap: 'wrap' }}>
-                    <img src={servico.img} alt={servico.titulo} style={{ width: '130px', height: '120px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, boxShadow: '0 2px 5px rgba(0,0,0,0.15)' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, minWidth: '200px', paddingTop: '10px' }}>
-                      <h3 style={{ margin: 0, fontSize: '22px', color: '#111' }}>{servico.titulo}</h3>
-                      <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#888', fontWeight: '500' }}>Toque para expandir detalhes 👇</p>
+            <p className="servicos-subtitulo">Toque em um serviço para ver os detalhes completos</p>
+
+            <div className="lista-servicos-coluna">
+              {servicosData.map((servico) => {
+                const aberto = servicoExpandido === servico.id;
+                return (
+                  <div
+                    key={servico.id}
+                    className={`card-servico-longo ${aberto ? 'expandido' : ''}`}
+                    onClick={() => toggleServico(servico.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={aberto}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleServico(servico.id); } }}
+                  >
+                    <div className="card-servico-topo">
+                      <img src={servico.img} alt={servico.titulo} className="card-servico-img" />
+                      <div className="card-servico-info">
+                        <h3 className="card-servico-titulo">{servico.titulo}</h3>
+                        <p className="card-servico-resumo">{servico.desc}</p>
+                        <span className="card-expandir-indicador">
+                          {aberto ? 'Ocultar detalhes' : 'Toque para expandir detalhes'}
+                          <i className="card-chevron" aria-hidden="true" />
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={`card-servico-detalhes ${aberto ? 'aberto' : ''}`}>
+                      <div className="card-servico-detalhes-inner">
+                        <p><strong>Descrição:</strong> {servico.desc}</p>
+                        <p><strong>Quando revisar:</strong> {servico.sintomas}</p>
+                        <p><strong>O que é feito:</strong> {servico.feito}</p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div style={{ 
-                    maxHeight: servicoExpandido === servico.id ? '500px' : '0', 
-                    opacity: servicoExpandido === servico.id ? '1' : '0',
-                    overflow: 'hidden', 
-                    transition: 'all 0.3s ease-in-out',
-                    marginTop: servicoExpandido === servico.id ? '20px' : '0'
-                  }}>
-                    <div style={{ padding: '15px 10px', borderTop: '1px solid #ddd', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#f9f9f9', borderRadius: '6px' }}>
-                      <p><strong>📝 Descrição:</strong> {servico.desc}</p>
-                      <p><strong>⚠️ Quando revisar:</strong> {servico.sintomas}</p>
-                      <p><strong>🔧 O que é feito:</strong> {servico.feito}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
         {paginaAtual === 'conta' && (
-          <MyAccount 
-            onLogin={setUsuarioLogado} 
-            setPaginaAtual={setPaginaAtual}
-            onOpenTerms={() => setModalAberto('termos')}
-            onOpenPrivacy={() => setModalAberto('privacidade')}
-          />
+          usuarioLogado ? (
+            // Bug corrigido: já logado não pode acessar login/cadastro de novo.
+            <div className="conta-container">
+              <div className="conta-box" style={{ textAlign: 'center' }}>
+                <h2>Você já está conectado</h2>
+                <p style={{ color: '#555', margin: '10px 0 24px 0', lineHeight: 1.6 }}>
+                  Olá, <strong>{usuarioLogado}</strong>! Você já tem uma sessão ativa.
+                  Para entrar com outra conta, saia primeiro.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button
+                    className="btn-submit-conta"
+                    onClick={() => setPaginaAtual('meus-carros')}
+                  >
+                    IR PARA MEUS CARROS
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    style={{ padding: '14px', backgroundColor: '#fff', color: '#e50914', border: '2px solid #e50914', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}
+                  >
+                    SAIR DA CONTA
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <MyAccount 
+              onLogin={setUsuarioLogado} 
+              setPaginaAtual={setPaginaAtual}
+              onOpenTerms={() => setModalAberto('termos')}
+              onOpenPrivacy={() => setModalAberto('privacidade')}
+            />
+          )
         )}
 
         {paginaAtual === 'meus-carros' && (
