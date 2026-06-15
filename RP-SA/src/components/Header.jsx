@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Header({ logo, onContact, setPaginaAtual, usuarioLogado }) {
+export default function Header({ logo, onContact, setPaginaAtual, usuarioLogado, onLogout }) {
   const [menuAberto, setMenuAberto] = useState(false);
 
   const irPara = (pagina) => {
@@ -9,6 +9,11 @@ export default function Header({ logo, onContact, setPaginaAtual, usuarioLogado 
     if (pagina === 'encontre') {
       setTimeout(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 300);
     }
+  };
+
+  const handleSair = () => {
+    setMenuAberto(false);
+    if (onLogout) onLogout();
   };
 
   return (
@@ -52,15 +57,37 @@ export default function Header({ logo, onContact, setPaginaAtual, usuarioLogado 
         </div>
 
         <nav>
-          <a onClick={() => irPara('inicio')}>Início</a>
-          <a onClick={() => irPara('servicos')}>Serviços</a>
-          <a onClick={() => irPara('encontre')}>Encontre-nos</a>
+          <a onClick={() => irPara('inicio')} style={{ cursor: 'pointer' }}>Início</a>
+          <a onClick={() => irPara('servicos')} style={{ cursor: 'pointer' }}>Serviços</a>
+          <a onClick={() => irPara('encontre')} style={{ cursor: 'pointer' }}>Encontre-nos</a>
 
           {usuarioLogado && (
-          <a onClick={() => irPara('meus-carros')} style={{ color: '#e50914', fontWeight: 'bold' }}>Meus Carros</a>
-  )}
+            <a onClick={() => irPara('meus-carros')} style={{ color: '#e50914', fontWeight: 'bold', cursor: 'pointer' }}>Meus Carros</a>
+          )}
 
-<a onClick={() => irPara('conta')}>Minha Conta</a>
+          <a onClick={() => irPara('conta')} style={{ cursor: 'pointer' }}>Minha Conta</a>
+
+          {usuarioLogado && (
+            <button
+              onClick={handleSair}
+              className="btn-logout-menu"
+              style={{
+                marginTop: '20px',
+                width: '100%',
+                padding: '14px',
+                backgroundColor: '#e50914',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                fontSize: '15px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+              }}
+            >
+              SAIR / LOGOUT
+            </button>
+          )}
         </nav>
       </div>
       {menuAberto && <div className="fundo-escuro-menu" onClick={() => setMenuAberto(false)}></div>}

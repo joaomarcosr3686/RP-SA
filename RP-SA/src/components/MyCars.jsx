@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../lib/supabaseClient';
 
 export default function MeusCarros({ usuarioLogado, onOpenTerms }) {
   const [carros, setCarros] = useState([]);
@@ -42,6 +38,19 @@ export default function MeusCarros({ usuarioLogado, onOpenTerms }) {
       buscarCarros();
     }, 10);
   }, []);
+
+  // Acessibilidade: fecha o modal de senha ao pressionar ESC.
+  useEffect(() => {
+    if (!carroParaDesbloquear) return;
+    const aoPressionarTecla = (e) => {
+      if (e.key === 'Escape') {
+        setCarroParaDesbloquear(null);
+        setSenhaDigitada('');
+      }
+    };
+    window.addEventListener('keydown', aoPressionarTecla);
+    return () => window.removeEventListener('keydown', aoPressionarTecla);
+  }, [carroParaDesbloquear]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value.toUpperCase() });
@@ -171,8 +180,8 @@ export default function MeusCarros({ usuarioLogado, onOpenTerms }) {
       </div>
 
       {/* LISTA DE CARROS (SEGURA) */}
-      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Veículos Registrados</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '800px', margin: '0 auto' }}>
+      <h3 className="carros-lista-titulo">Veículos Registrados</h3>
+      <div className="carros-lista">
         {carregandoCarros ? (
           <p style={{ textAlign: 'center' }}>Carregando seus veículos...</p>
         ) : carros.length === 0 ? (
@@ -182,36 +191,46 @@ export default function MeusCarros({ usuarioLogado, onOpenTerms }) {
             const estaDesbloqueado = carrosDesbloqueados.includes(carro.id);
 
             return (
-              <div key={carro.id} style={{ backgroundColor: '#fff', borderLeft: '5px solid #e50914', borderRadius: '8px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div key={carro.id} className="carro-card">
 
                 {/* Cabeçalho visível para todos (Apenas Modelo e Ano) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div>
-                    <h4 style={{ margin: '0 0 5px 0', fontSize: '20px' }}>{carro.modelo}</h4>
-                    <p style={{ margin: '0', color: '#555' }}><strong>Ano:</strong> {carro.ano_fabricacao}/{carro.ano_modelo}</p>
+                <div className="carro-card-header">
+                  <div className="carro-card-titulo-bloco">
+                    <h4 className="carro-modelo">{carro.modelo}</h4>
+                    <span className="carro-ano-tag">{carro.ano_fabricacao}/{carro.ano_modelo}</span>
                   </div>
 
                   {!estaDesbloqueado && (
-                    <button onClick={() => setCarroParaDesbloquear(carro)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-                      🔒 VER DADOS E OPÇÕES
+                    <button onClick={() => setCarroParaDesbloquear(carro)} className="btn-ver-dados">
+                      Ver dados e opções
                     </button>
                   )}
                 </div>
 
                 {/* Conteúdo Oculto (Só aparece se digitar a senha) */}
                 {estaDesbloqueado && (
-                  <div style={{ borderTop: '1px solid #eee', paddingTop: '15px', marginTop: '5px' }}>
-                    <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', flexWrap: 'wrap' }}>
-                      <p style={{ margin: 0, color: '#444' }}><strong>Placa:</strong> {carro.placa}</p>
-                      <p style={{ margin: 0, color: '#444' }}><strong>Chassi:</strong> {carro.chassi}</p>
+                  <div className="carro-detalhes">
+                    <div className="carro-specs">
+                      <div className="carro-spec-item">
+                        <span className="carro-spec-label">Placa</span>
+                        <span className="carro-spec-valor">{carro.placa}</span>
+                      </div>
+                      <div className="carro-spec-item">
+                        <span className="carro-spec-label">Chassi</span>
+                        <span className="carro-spec-valor">{carro.chassi}</span>
+                      </div>
+                      <div className="carro-spec-item">
+                        <span className="carro-spec-label">Ano Fab./Mod.</span>
+                        <span className="carro-spec-valor">{carro.ano_fabricacao}/{carro.ano_modelo}</span>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <button onClick={() => solicitarOrcamento(carro)} style={{ backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '12px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'center' }}>
-                        🟢 SOLICITAR ORÇAMENTO
+                    <div className="carro-acoes">
+                      <button onClick={() => solicitarOrcamento(carro)} className="btn-orcamento">
+                        Solicitar Orçamento
                       </button>
-                      <button onClick={() => deletarCarro(carro.id)} style={{ backgroundColor: '#fff', color: '#e50914', border: '1px solid #e50914', padding: '12px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', flex: '0 1 auto' }}>
-                        🗑️ EXCLUIR
+                      <button onClick={() => deletarCarro(carro.id)} className="btn-excluir">
+                        Excluir
                       </button>
                     </div>
                   </div>
